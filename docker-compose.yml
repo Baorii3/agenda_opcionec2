@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: agenda-db
+    environment:
+      POSTGRES_DB: room_reservation_system
+      POSTGRES_USER: api_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-1234}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_user -d room_reservation_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../AGENDA_API
+      dockerfile: Dockerfile
+    container_name: agenda-api
+    ports:
+      - "8085:8085"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: room_reservation_system
+      DB_USER: api_user
+      DB_PASSWORD: ${DB_PASSWORD:-1234}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      AWS_COGNITO_REGION: ${AWS_COGNITO_REGION:-eu-west-1}
+      AWS_COGNITO_USER_POOL_ID: ${AWS_COGNITO_USER_POOL_ID}
+      AWS_COGNITO_CLIENT_ID: ${AWS_COGNITO_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET:-vY29tZS10by1teS1hdzNzb21lLWFnZW5kYS1hcGktcHJvamVjdC13aXRoLWp3dC10b2tlbnM=}
+      FRONTEND_URL: http://localhost:8081
+      BACKEND_URL: http://localhost:8085
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: nginx:alpine
+    container_name: agenda-web
+    ports:
+      - "80:80"
+    volumes:
+      - ./web:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+
+volumes:
+  db_data:
