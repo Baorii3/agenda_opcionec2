@@ -19,16 +19,16 @@ echo "🚀 Desplegando en: http://$IP"
 
 # 2. Sincronizar archivos con rsync (Mucho más eficiente)
 echo "📦 Subiendo configuración..."
-rsync -avz -e "ssh -i $KEY_FILE -o StrictHostKeyChecking=no" \
-    --exclude 'terraform' \
-    --exclude '.git' \
+rsync -avP --delete -e "ssh -i $KEY_FILE -o StrictHostKeyChecking=no" \
+    --exclude '/terraform' \
+    --exclude '/.git' \
     "$PROJECT_DIR/" "ec2-user@$IP:/home/ec2-user/agenda_ec2_barata/"
 
 echo "📦 Subiendo carpeta API..."
-rsync -avz -e "ssh -i $KEY_FILE -o StrictHostKeyChecking=no" \
-    --exclude 'target' \
-    --exclude '.git' \
-    --exclude '.mvn' \
+rsync -avP --delete -e "ssh -i $KEY_FILE -o StrictHostKeyChecking=no" \
+    --exclude '/target' \
+    --exclude '/.git' \
+    --exclude '/.mvn' \
     "$API_DIR/" "ec2-user@$IP:/home/ec2-user/AGENDA_API/"
 
 # 3. Lanzar reload en remoto

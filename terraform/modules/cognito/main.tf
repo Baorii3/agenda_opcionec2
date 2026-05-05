@@ -2,6 +2,7 @@ variable "project_name" {}
 variable "aws_region" {}
 variable "google_client_id" {}
 variable "google_client_secret" {}
+variable "public_ip" {}
 
 resource "aws_cognito_user_pool" "this" {
   name = "${var.project_name}-user-pool"
@@ -41,8 +42,20 @@ resource "aws_cognito_user_pool_client" "this" {
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
 
-  callback_urls = ["http://localhost/admin.html"]
-  logout_urls   = ["http://localhost/index.html"]
+  callback_urls = [
+    "http://localhost/admin.html",
+    "https://${var.public_ip}/admin.html",
+    "agenda-app://callback"
+  ]
+  logout_urls   = [
+    "http://localhost/admin.html",
+    "http://localhost/index.html",
+    "http://localhost/login.html",
+    "https://${var.public_ip}/admin.html",
+    "https://${var.public_ip}/index.html",
+    "https://${var.public_ip}/login.html",
+    "agenda-app://signout"
+  ]
 
   supported_identity_providers = ["COGNITO", "Google"]
 
@@ -68,15 +81,11 @@ resource "aws_cognito_identity_provider" "google" {
 }
 
 resource "aws_cognito_user_pool_domain" "this" {
-  domain       = "${var.project_name}-auth-${random_string.id.result}"
+  domain       = "${var.project_name}-auth-c44f17"
   user_pool_id = aws_cognito_user_pool.this.id
 }
 
-resource "random_string" "id" {
-  length  = 6
-  special = false
-  upper   = false
-}
+
 
 output "user_pool_id" {
   value = aws_cognito_user_pool.this.id

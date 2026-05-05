@@ -10,6 +10,7 @@ module "cognito" {
   aws_region           = var.aws_region
   google_client_id     = var.google_client_id
   google_client_secret = var.google_client_secret
+  public_ip            = module.compute.public_ip
 }
 
 module "compute" {

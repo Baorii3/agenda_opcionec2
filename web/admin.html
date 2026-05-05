@@ -3,57 +3,181 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panell d'Administració - AgendaTIC</title>
-    <!-- Utilitzarem l'estil principal i un específic per a l'admin -->
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/admin.css">
-    <script src="js/config.js?v=v3"></script>
-    <script src="js/auth.js?v=v3"></script>
-    <script>
-        // Check authentication before loading the rest of the page
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!auth.isAuthenticated()) {
-                console.log("No token found, redirecting to login...");
-                auth.login(); // This will redirect to Cognito login
-            }
-        });
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="google-client-id" content="1042880725485-1pnfjrkd3m89b7pq3gjpad1g5lt3k0hh.apps.googleusercontent.com">
+    <title>AgendaTIC · Administració</title>
+
+    <!-- Font Awesome per icones (opcional) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Estils del panell admin -->
+    <link rel="stylesheet" href="./css/admin/admin.css">
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Posa aquí el teu Google Client ID -->
 </head>
 
 <body>
+
+    <!-- OVERLAY DE LOGIN (es mostra si no hi ha token) -->
+    <div id="login-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+     z-index: 9999; display:flex; flex-direction:column;
+     align-items:center; justify-content:center; gap:24px;">
+        <h1 style="color:#fff; font-size:2rem; margin:0;">AgendaTIC · Administració</h1>
+        <p style="color:#94a3b8; margin:0;">Inicia sessió amb el teu compte de Google per continuar</p>
+        <div id="google-signin-btn"></div>
+        <p id="login-error" style="color:#f87171; display:none; margin:0;">
+            No tens permisos d'administrador. Contacta amb el suport.
+        </p>
+    </div>
+
     <header>
         <div class="header-info">
-            <h1>AgendaTIC - Administració</h1>
-            <p id="current-time">18/2/2026 - 16:49:20</p>
+            <h1 id="admin-header-title">Panell d'Administració</h1>
+            <p id="admin-current-time">Carregant hora...</p>
         </div>
-        <div class="user-icon" style="cursor: default;">
-            ⚙️
+        <div class="admin-badge">
+            <i class="fas fa-user-shield"></i> Administrador
         </div>
     </header>
 
     <main>
-        <aside class="admin-sidebar">
-            <button id="btn-usuaris" class="admin-btn active">Usuaris</button>
-            <button id="btn-activitats" class="admin-btn">Activitats</button>
-            <button onclick="auth.logout()" class="admin-btn btn-sortir">Sortir</button>
+        <!-- Sidebar amb botons d'administració -->
+        <aside id="admin-sidebar">
+            <button class="admin-nav-btn active" data-view="dashboard">
+                <i class="fas fa-tachometer-alt"></i> Panell
+            </button>
+            <button class="admin-nav-btn" data-view="users">
+                <i class="fas fa-users"></i> Usuaris
+            </button>
+            <button class="admin-nav-btn" data-view="activities">
+                <i class="fas fa-calendar-alt"></i> Activitats
+            </button>
+            <button class="admin-nav-btn" data-view="rooms">
+                <i class="fas fa-door-open"></i> Sales
+            </button>
+            <div style="flex:1;"></div> <!-- espaiador per separar "Sortir" avall -->
+            <button class="admin-nav-btn logout-btn" id="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Sortir
+            </button>
         </aside>
 
-        <section class="content">
-            <div id="view-usuaris" class="view-panel active">
-                <iframe src="admin-usuaris.html?v=v4" width="100%" height="100%" frameborder="0"></iframe>
+        <!-- Contingut dinàmic -->
+        <section class="admin-content">
+            <!-- Panell inicial (dashboard) -->
+            <div id="view-dashboard" class="admin-view active">
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-users"></i>
+                        <h3>Total Usuaris</h3>
+                        <p id="stat-users">—</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-calendar-check"></i>
+                        <h3>Activitats Actives</h3>
+                        <p id="stat-activities">—</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-door-closed"></i>
+                        <h3>Sales Disponibles</h3>
+                        <p id="stat-rooms">—</p>
+                    </div>
+                </div>
+                <div class="recent-activity">
+                    <h2>Activitat recent</h2>
+                    <div id="recent-list">Carregant...</div>
+                </div>
             </div>
 
-            <div id="view-activitats" class="view-panel">
-                <iframe src="admin-activitats.html" width="100%" height="100%" frameborder="0"></iframe>
+            <!-- Vista d'usuaris -->
+            <div id="view-users" class="admin-view">
+                <div class="admin-section-header">
+                    <h2>Gestió d'Usuaris</h2>
+                    <button class="admin-action-btn" id="btn-nou-usuari"><i class="fas fa-plus"></i> Nou Usuari</button>
+                </div>
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nom</th>
+                                <th>Correu</th>
+                                <th>Rol</th>
+                                <th>Accions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- S'omplirà via JS -->
+                            <tr>
+                                <td colspan="5">Carregant usuaris...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
+            <!-- Vista d'activitats -->
+            <div id="view-activities" class="admin-view">
+                <div class="view-header">
+                    <h2>Gestió d'Activitats</h2>
+                    <button class="admin-action-btn" id="btn-nova-activitat"><i class="fas fa-plus"></i> Nova
+                        Activitat</button>
+                </div>
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Títol</th>
+                                <th>Sala</th>
+                                <th>Data</th>
+                                <th>Hora</th>
+                                <th>Activa</th>
+                                <th>Accions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activities-table-body">
+                            <tr>
+                                <td colspan="7">Carregant activitats...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
+            <!-- Vista de sales -->
+            <div id="view-rooms" class="admin-view">
+                <div class="view-header">
+                    <h2>Gestió de Sales</h2>
+                    <button class="admin-action-btn" id="btn-nova-sala"><i class="fas fa-plus"></i> Nova Sala</button>
+                </div>
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nom</th>
+                                <th>Color</th>
+                                <th>Accions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rooms-table-body">
+                            <tr>
+                                <td colspan="4">Carregant sales...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
     </main>
 
-    <script src="js/clock.js"></script>
-    <script src="js/admin.js"></script>
+    <!-- JavaScript del panell (es crearà després) -->
+    <script src="js/admin/admin.js"></script>
+
+
 </body>
 
 </html>
